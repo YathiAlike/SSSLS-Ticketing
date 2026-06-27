@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %} - Tickets{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+  <div>
+    <h2 class="mb-1">Tickets</h2>
+    <p class="text-muted mb-0">Search, filter, and review all tickets available for your role.</p>
+  </div>
+  <a href="{{ url_for('tickets.create_ticket') }}" class="btn btn-primary">Create Ticket</a>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-lg-4">
+        <label class="form-label">Search</label>
+        <input type="text" name="search" value="{{ request.args.get('search','') }}" class="form-control" placeholder="Ticket number, title, category">
+      </div>
+      <div class="col-md-3 col-lg-2">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          <option value="">All</option>
+          {% for status in ['Open','Under Review','Approved','In Progress','Waiting for Information','Resolved','Closed','Rejected'] %}
+            <option value="{{ status }}" {% if request.args.get('status') == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 col-lg-2">
+        <label class="form-label">Priority</label>
+        <select class="form-select" name="priority">
+          <option value="">All</option>
+          {% for priority in priorities %}
+            <option value="{{ priority }}" {% if request.args.get('priority') == priority %}selected{% endif %}>{{ priority }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if current_user.role == 'admin' %}
+      <div class="col-md-3 col-lg-2">
+        <label class="form-label">Department</label>
+        <select class="form-select" name="department_id">
+          <option value="">All</option>
+          {% for department in departments %}
+            <option value="{{ department.id }}" {% if request.args.get('department_id') == department.id|string %}selected{% endif %}>{{ department.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-md-3 col-lg-2 d-grid">
+        <button class="btn btn-outline-primary">Apply Filters</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+      <tr>
+        <th>Ticket</th>
+        <th>Requester</th>
+        <th>Department</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Assignee</th>
+        <th>Created</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for ticket in tickets %}
+        <tr>
+          <td>
+            <a class="fw-semibold text-decoration-none" href="{{ url_for('tickets.detail', ticket_id=ticket.id) }}">{{ ticket.ticket_number }}</a>
+            <div class="small text-muted">{{ ticket.title }}</div>
+          </td>
+          <td>{{ ticket.requester.full_name }}</td>
+          <td>{{ ticket.department.name }}</td>
+          <td><span class="badge text-bg-secondary">{{ ticket.priority }}</span></td>
+          <td><span class="badge status-badge">{{ ticket.status }}</span></td>
+          <td>{{ ticket.assignee.full_name if ticket.assignee else '-' }}</td>
+          <td>{{ ticket.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">No tickets found for the current filter.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

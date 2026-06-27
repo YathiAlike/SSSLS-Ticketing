@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %} - {{ ticket.ticket_number }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+  <div>
+    <h2 class="mb-1">{{ ticket.ticket_number }}</h2>
+    <p class="text-muted mb-0">{{ ticket.title }}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge text-bg-secondary px-3 py-2">{{ ticket.priority }}</span>
+    <span class="badge status-badge px-3 py-2">{{ ticket.status }}</span>
+    {% if ticket.is_overdue %}<span class="badge text-bg-danger px-3 py-2">Overdue</span>{% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h5 class="mb-0">Ticket Information</h5></div>
+      <div class="card-body">
+        <div class="row g-3 small-detail">
+          <div class="col-md-6"><strong>Department:</strong> {{ ticket.department.name }}</div>
+          <div class="col-md-6"><strong>Category:</strong> {{ ticket.category }}</div>
+          <div class="col-md-6"><strong>Requester:</strong> {{ ticket.requester.full_name }}</div>
+          <div class="col-md-6"><strong>Approver:</strong> {{ ticket.approver.full_name if ticket.approver else '-' }}</div>
+          <div class="col-md-6"><strong>Assigned To:</strong> {{ ticket.assignee.full_name if ticket.assignee else '-' }}</div>
+          <div class="col-md-6"><strong>Location:</strong> {{ ticket.location or '-' }}</div>
+          <div class="col-md-6"><strong>Created:</strong> {{ ticket.created_at.strftime('%d %b %Y %H:%M') }}</div>
+          <div class="col-md-6"><strong>Due:</strong> {{ ticket.due_at.strftime('%d %b %Y %H:%M') if ticket.due_at else '-' }}</div>
+          {% if ticket.resolved_at %}<div class="col-md-6"><strong>Resolved:</strong> {{ ticket.resolved_at.strftime('%d %b %Y %H:%M') }}</div>{% endif %}
+          {% if ticket.closed_at %}<div class="col-md-6"><strong>Closed:</strong> {{ ticket.closed_at.strftime('%d %b %Y %H:%M') }}</div>{% endif %}
+        </div>
+        <hr>
+        <h6>Description</h6>
+        <p class="mb-0">{{ ticket.description }}</p>
+        {% if ticket.rejection_reason %}
+        <div class="alert alert-danger mt-3 mb-0"><strong>Rejection Reason:</strong> {{ ticket.rejection_reason }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h5 class="mb-0">Comments & Discussion</h5></div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('tickets.add_comment', ticket_id=ticket.id) }}" class="mb-4">
+          <div class="mb-3">
+            <textarea name="comment" class="form-control" rows="3" placeholder="Add progress notes, clarifications, or updates"></textarea>
+          </div>
+          {% if current_user.role in ['approver', 'staff', 'admin'] %}
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="is_internal" name="is_internal">
+            <label class="form-check-label" for="is_internal">Internal note (visible to staff/approvers/admin)</label>
+          </div>
+          {% endif %}
+          <button class="btn btn-outline-primary">Add Comment</button>
+        </form>
+
+        {% for comment in ticket.comments|sort(attribute='created_at', reverse=True) %}
+          {% if not comment.is_internal or current_user.role in ['approver', 'staff', 'admin'] %}
+          <div class="comment-box mb-3">
+            <div class="d-flex justify-content-between">
+              <div class="fw-semibold">{{ comment.user.full_name }} {% if comment.is_internal %}<span class="badge text-bg-warning">Internal</span>{% endif %}</div>
+              <div class="small text-muted">{{ comment.created_at.strftime('%d %b %Y %H:%M') }}</div>
+            </div>
+            <div class="mt-2">{{ comment.comment }}</div>
+          </div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted mb-0">No comments yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0">Activity Timeline</h5></div>
+      <div class="card-body">
+        <div class="timeline">
+        {% for item in ticket.activities|sort(attribute='created_at', reverse=True) %}
+          <div class="timeline-item">
+            <div class="small text-muted">{{ item.created_at.strftime('%d %b %Y %H:%M') }}</div>
+            <div class="fw-semibold">{{ item.action }} by {{ item.actor.full_name }}</div>
+            <div>{{ item.from_status or '-' }} → {{ item.to_status or '-' }}</div>
+            {% if item.note %}<div class="small text-muted">{{ item.note }}</div>{% endif %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No activity yet.</p>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h5 class="mb-0">Workflow Actions</h5></div>
+      <div class="card-body vstack gap-3">
+        {% if current_user.role in ['approver', 'admin'] %}
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="review">
+          <textarea name="note" class="form-control" rows="2" placeholder="Review remark"></textarea>
+          <button class="btn btn-outline-secondary">Move to Under Review</button>
+        </form>
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="approve">
+          <textarea name="note" class="form-control" rows="2" placeholder="Approval remark"></textarea>
+          <button class="btn btn-success">Approve Request</button>
+        </form>
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="reject">
+          <textarea name="note" class="form-control" rows="2" placeholder="Reason for rejection"></textarea>
+          <button class="btn btn-danger">Reject Request</button>
+        </form>
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="assign">
+          <select name="assignee_id" class="form-select">
+            <option value="">Select staff member</option>
+            {% for member in staff_members %}
+              <option value="{{ member.id }}" {% if ticket.assigned_to_id == member.id %}selected{% endif %}>{{ member.full_name }}</option>
+            {% endfor %}
+          </select>
+          <textarea name="note" class="form-control" rows="2" placeholder="Assignment note"></textarea>
+          <button class="btn btn-primary">Assign to Staff</button>
+        </form>
+        {% endif %}
+
+        {% if current_user.role in ['staff', 'approver', 'admin'] %}
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="progress">
+          <textarea name="note" class="form-control" rows="2" placeholder="Progress update"></textarea>
+          <button class="btn btn-outline-primary">Mark In Progress</button>
+        </form>
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="wait_info">
+          <textarea name="note" class="form-control" rows="2" placeholder="What information is needed?"></textarea>
+          <button class="btn btn-outline-warning">Waiting for Information</button>
+        </form>
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="resolve">
+          <textarea name="note" class="form-control" rows="2" placeholder="Resolution summary"></textarea>
+          <button class="btn btn-success">Mark Resolved</button>
+        </form>
+        {% endif %}
+
+        {% if ticket.status == 'Resolved' and current_user.id == ticket.requester_id %}
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="close">
+          <label class="form-label mb-0">Satisfaction Rating</label>
+          <select name="satisfaction_rating" class="form-select">
+            <option value="5">5 - Excellent</option>
+            <option value="4">4 - Good</option>
+            <option value="3">3 - Satisfactory</option>
+            <option value="2">2 - Needs Improvement</option>
+            <option value="1">1 - Poor</option>
+          </select>
+          <textarea name="satisfaction_comment" class="form-control" rows="2" placeholder="Feedback after resolution"></textarea>
+          <button class="btn btn-dark">Confirm & Close Ticket</button>
+        </form>
+        {% endif %}
+
+        {% if current_user.id == ticket.requester_id and ticket.status in ['Rejected', 'Closed'] %}
+        <form method="post" action="{{ url_for('tickets.workflow_action', ticket_id=ticket.id) }}" class="vstack gap-2">
+          <input type="hidden" name="action" value="reopen">
+          <textarea name="note" class="form-control" rows="2" placeholder="Why should this ticket be reopened?"></textarea>
+          <button class="btn btn-outline-dark">Reopen Ticket</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h5 class="mb-0">Attachments</h5></div>
+      <div class="card-body">
+        {% for attachment in ticket.attachments %}
+          <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+            <div class="small text-truncate me-3">{{ attachment.original_filename }}</div>
+            <a href="{{ url_for('tickets.download_attachment', attachment_id=attachment.id) }}" class="btn btn-sm btn-outline-primary">Download</a>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No attachments uploaded.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if ticket.satisfaction_rating %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0">Closure Feedback</h5></div>
+      <div class="card-body">
+        <div class="display-6 fw-bold">{{ ticket.satisfaction_rating }}/5</div>
+        <p class="mb-0">{{ ticket.satisfaction_comment or 'No additional feedback given.' }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

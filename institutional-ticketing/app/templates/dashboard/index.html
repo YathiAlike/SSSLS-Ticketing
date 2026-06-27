@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %} - Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+  <div>
+    <h2 class="mb-1">Dashboard</h2>
+    <p class="text-muted mb-0">Monitor requests, approvals, assignments, SLA performance, and closure status.</p>
+  </div>
+  <a href="{{ url_for('tickets.create_ticket') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Raise New Ticket</a>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6 col-xl-2"><div class="metric-card"><span>Total Tickets</span><h3>{{ summary.total }}</h3></div></div>
+  <div class="col-md-6 col-xl-2"><div class="metric-card"><span>Active</span><h3>{{ summary.open }}</h3></div></div>
+  <div class="col-md-6 col-xl-2"><div class="metric-card"><span>Resolved</span><h3>{{ summary.resolved }}</h3></div></div>
+  <div class="col-md-6 col-xl-2"><div class="metric-card"><span>Closed</span><h3>{{ summary.closed }}</h3></div></div>
+  <div class="col-md-6 col-xl-2"><div class="metric-card danger"><span>Overdue</span><h3>{{ summary.overdue }}</h3></div></div>
+  <div class="col-md-6 col-xl-2"><div class="metric-card"><span>Avg. Resolution (hrs)</span><h3>{{ summary.avg_resolution_hours }}</h3></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Tickets</h5>
+        <a href="{{ url_for('tickets.list_tickets') }}" class="small text-decoration-none">View all</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Ticket</th>
+              <th>Department</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in recent_tickets %}
+            <tr>
+              <td>
+                <a href="{{ url_for('tickets.detail', ticket_id=ticket.id) }}" class="fw-semibold text-decoration-none">{{ ticket.ticket_number }}</a>
+                <div class="small text-muted">{{ ticket.title }}</div>
+              </td>
+              <td>{{ ticket.department.name }}</td>
+              <td><span class="badge text-bg-secondary">{{ ticket.priority }}</span></td>
+              <td><span class="badge status-badge">{{ ticket.status }}</span></td>
+              <td>
+                {% if ticket.due_at %}
+                  <span class="{% if ticket.is_overdue %}text-danger fw-semibold{% endif %}">{{ ticket.due_at.strftime('%d %b %Y %H:%M') }}</span>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center py-4 text-muted">No tickets yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-white"><h5 class="mb-0">Department Workload</h5></div>
+      <div class="card-body">
+        {% for name, count in dept_stats %}
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>{{ name }}</div>
+            <span class="badge rounded-pill text-bg-primary">{{ count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

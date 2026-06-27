@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %} - SLA Settings{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white">
+    <h4 class="mb-1">SLA & Escalation Configuration</h4>
+    <p class="text-muted mb-0">Define expected resolution windows and escalation thresholds by department and priority.</p>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Department</th>
+              <th>Priority</th>
+              <th>Resolution Hours</th>
+              <th>Escalation Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for department in departments %}
+              {% for priority in priorities %}
+              {% set item = settings.get((department.id, priority)) %}
+              <tr>
+                <td>{{ department.name }}</td>
+                <td>{{ priority }}</td>
+                <td><input class="form-control" type="number" min="1" name="resolution_{{ department.id }}_{{ priority }}" value="{{ item.resolution_hours if item else 48 }}"></td>
+                <td><input class="form-control" type="number" min="1" name="escalation_{{ department.id }}_{{ priority }}" value="{{ item.escalation_hours if item else 24 }}"></td>
+              </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-primary">Save SLA Settings</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %} - Create Ticket{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-9">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h3 class="mb-1">Raise Service Request</h3>
+        <p class="text-muted mb-0">Submit issues, support needs, or institutional service requests with proper routing and traceability.</p>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data" class="row g-4">
+          <div class="col-md-8">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" placeholder="Short summary of the issue" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select">
+              {% for priority in priorities %}
+                <option value="{{ priority }}">{{ priority }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Department</label>
+            <select name="department_id" id="departmentSelect" class="form-select" required>
+              <option value="">Select department</option>
+              {% for department in departments %}
+                <option value="{{ department.id }}" data-name="{{ department.name }}">{{ department.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Category</label>
+            <select name="category" id="categorySelect" class="form-select">
+              <option value="">Select category</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Custom Category</label>
+            <input type="text" name="custom_category" class="form-control" placeholder="Optional if not listed">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" placeholder="Room, block, office, lab, etc.">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea name="description" rows="6" class="form-control" placeholder="Describe the problem, request details, urgency, and expected support" required></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Attachments</label>
+            <input type="file" name="attachments" multiple class="form-control">
+            <div class="form-text">Accepted formats: PNG, JPG, PDF, DOC/DOCX, XLS/XLSX, TXT.</div>
+          </div>
+          <div class="col-12 d-flex gap-3">
+            <button class="btn btn-primary px-4">Submit Ticket</button>
+            <a href="{{ url_for('tickets.list_tickets') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
